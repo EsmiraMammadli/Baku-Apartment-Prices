@@ -1,14 +1,17 @@
 import pandas as pd
 import streamlit as st
 
-from utils import load_clean, make_features, train_model
+from utils import load_clean, make_features, rare_locations, train_model
 
 st.set_page_config(page_title="Price Prediction", page_icon="💰", layout="wide")
 df = load_clean()
 model, columns, stats = train_model()
 
 st.title("💰 Price Prediction")
-st.caption("All prices are asking prices, not final deal prices.")
+st.caption(
+    f"All prices are asking prices, not final deal prices. {len(rare_locations())} rarely listed places "
+    "are grouped as “Others” inside the model."
+)
 
 tab1, tab2 = st.tabs(["Estimate a price", "How accurate is it?"])
 

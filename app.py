@@ -1,13 +1,12 @@
 import pandas as pd
 import streamlit as st
 
-from utils import load_clean, load_data, train_model
+from utils import load_clean, load_data
 
 st.set_page_config(page_title="Baku Apartment Prices", page_icon="🏙️", layout="wide")
 
 raw = load_data()
 df = load_clean()
-_, _, stats = train_model()
 
 st.title("🏙️ What apartment ads reveal about Baku")
 st.subheader("The seller names a price. Is it fair?")
@@ -20,7 +19,7 @@ c1, c2, c3, c4 = st.columns(4)
 c1.metric("Apartment ads", f"{len(raw):,}")
 c2.metric("Locations in Baku", f"{raw['location'].nunique()}")
 c3.metric("Typical asking price", f"{raw['price'].median():,.0f} AZN")
-c4.metric("Typical estimate miss", f"{stats['median_err']:.0%}")
+c4.metric("Ads with 2 or 3 rooms", f"{raw['rooms'].isin([2, 3]).mean():.0%}")
 
 st.info(
     "👈 Use the sidebar. **Data Analysis** walks through our seven assumptions. "

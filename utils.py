@@ -39,20 +39,42 @@ def load_clean():
     return d.reset_index(drop=True)
 
 
+RARE_LIMIT = 50  # places with fewer ads than this are grouped as "Others"
+
+
+def location_type(loc):
+    """Azerbaijani place names end with m. (metro), r. (district) or q. (settlement)."""
+    for suffix, kind in ((" m.", "metro"), (" r.", "district"), (" q.", "settlement")):
+        if str(loc).endswith(suffix):
+            return kind
+    return "other"
+
+
+@st.cache_data
+def rare_locations():
+    counts = load_clean()["location"].value_counts()
+    return set(counts[counts < RARE_LIMIT].index)
+
+
 def make_features(d, columns=None):
-    X = pd.concat([d[NUM_COLS], pd.get_dummies(d["location"], prefix="loc")], axis=1)
+    group = d["location"].where(~d["location"].isin(rare_locations()), "Others")
+    kind = d["location"].map(location_type)
+    X = pd.concat(
+        [d[NUM_COLS], pd.get_dummies(group, prefix="loc"), pd.get_dummies(kind, prefix="type")],
+        axis=1,
+    )
     if columns is not None:
         X = X.reindex(columns=columns, fill_value=0)
     return X
 
 
-@st.cache_resource
+@st.cache_resource(show_spinner="Training the model (first visit only, about 20 seconds)...")
 def train_model():
     df = load_clean()
     X = make_features(df)
     cols = list(X.columns)
     Xtr, Xte, ytr, yte = train_test_split(X, df["price"], test_size=0.2, random_state=42)
-    test_model = RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1).fit(Xtr, ytr)
+    test_model = RandomForestRegressor(n_estimators=200, random_state=42, n_jobs=-1).fit(Xtr, ytr)
     pred = test_model.predict(Xte)
     err = np.abs(pred - yte) / yte
     stats = {
@@ -62,5 +84,5 @@ def train_model():
         "within20": float((err <= 0.20).mean()),
         "n_test": int(len(yte)),
     }
-    final = RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1).fit(X, df["price"])
+    final = RandomForestRegressor(n_estimators=200, random_state=42, n_jobs=-1).fit(X, df["price"])
     return final, cols, stats
