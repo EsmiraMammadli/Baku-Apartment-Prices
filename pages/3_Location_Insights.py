@@ -3,11 +3,24 @@ import os
 import pandas as pd
 import streamlit as st
 
-from utils import load_clean, location_type
+from utils import load_clean
 
 st.set_page_config(page_title="Location Insights", page_icon="📍", layout="wide")
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+HERE = os.path.dirname(os.path.abspath(__file__))
+# The page lives in pages/, the CSV files in data/ at the project root (a data/ folder next to the page also works).
+DATA_DIR = next(
+    (d for d in (os.path.join(HERE, "data"), os.path.join(os.path.dirname(HERE), "data")) if os.path.isdir(d)),
+    os.path.join(os.path.dirname(HERE), "data"),
+)
+
+
+def location_type(loc):
+    """Place names end with m. (metro), r. (district) or q. (settlement)."""
+    for suffix, kind in ((" m.", "metro"), (" r.", "district"), (" q.", "settlement")):
+        if str(loc).endswith(suffix):
+            return kind
+    return "other"
 
 
 @st.cache_data
